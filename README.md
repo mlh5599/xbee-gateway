@@ -14,9 +14,9 @@ current roadmap.
 
 ## Status
 
-- **Milestone 1 — Core Gateway**: in progress. Raw XBee IO sample relay to MQTT with
-  correct Home Assistant discovery typing (`sensor` for analog values, `binary_sensor`
-  for digital/thresholded values).
+- **Milestone 1 — Core Gateway**: done, deployed to production. Raw XBee IO sample relay
+  to MQTT with correct Home Assistant discovery typing (`sensor` for analog values,
+  `binary_sensor` for digital/thresholded values).
 - **Milestone 2 — Local Web UI**: planned. A small local web UI for editing device/channel
   and XBee coordinator configuration, instead of hand-editing JSON over SSH.
 - **Milestone 3 — ESPHome Smart End Device**: roadmap only. A more capable, two-way
