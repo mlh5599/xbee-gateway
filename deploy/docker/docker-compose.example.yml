@@ -1,0 +1,15 @@
+# Copy to docker-compose.yml and adjust for your environment.
+# Requires passing through the serial device the XBee coordinator is attached to.
+services:
+  xbee-gateway:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+    restart: unless-stopped
+    devices:
+      - "/dev/ttyUSB0:/dev/ttyUSB0"
+    volumes:
+      - ./config.json:/opt/xbee-gateway/config/config.json:ro
+      - ./devices.json:/opt/xbee-gateway/config/devices.json:ro
+    env_file:
+      - .env

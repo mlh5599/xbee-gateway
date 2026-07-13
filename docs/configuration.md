@@ -1,0 +1,56 @@
+# Configuration Reference
+
+Two JSON files plus optional environment variable overrides. Real config files
+(`config.json`, `devices.json`, `.env`) are gitignored — only the `*.example.json` /
+`.env.example` templates are tracked, and they contain placeholder values only.
+
+## `config.json`
+
+Copy from `config/config.example.json`. Path via `--config` CLI flag or
+`XBEE_GATEWAY_CONFIG` env var.
+
+| Key | Description |
+|---|---|
+| `mqtt.host` / `mqtt.port` | MQTT broker address. |
+| `mqtt.username` / `mqtt.password` | Leave blank in the file; prefer the env var overrides below for real deployments. |
+| `mqtt.base_topic` | Prefix for state/availability topics, e.g. `xbeegateway`. |
+| `mqtt.discovery_prefix` | Home Assistant MQTT discovery prefix, normally `homeassistant`. |
+| `mqtt.availability_topic` | Gateway-wide online/offline topic (LWT). |
+| `coordinator.serial_port` / `baud_rate` | Serial connection to the local XBee coordinator radio. |
+| `coordinator.reset_gpio_pin` / `status_led_gpio_pin` | GPIO pin numbers, `-1` to disable. |
+| `coordinator.gpio_backend` | `"pigpio"` or `"none"` — explicit choice, never auto-detected. |
+| `coordinator.at_settings.*` | AT-command parameters applied to the coordinator at startup. Each entry has `at` (command mnemonic), `value`, `verify_before_write` (read back and compare before writing, where the radio supports it), and optionally `secret: true` (e.g. the network encryption key) to flag it for redaction in logs and the future web UI. |
+| `logging.level` | Standard Python logging level name. |
+
+## `devices.json`
+
+Copy from `config/devices.example.json`. Path via `--devices` CLI flag or
+`XBEE_GATEWAY_DEVICES` env var.
+
+- `auto_register_unknown_devices` — if `true`, any XBee device that sends an IO sample but
+  isn't listed here gets a synthesized entry with generic channels and is published to HA
+  immediately (with a `WARNING` logged). Set `false` to require explicit configuration.
+- `devices[]` — one entry per remote XBee end device (`address`, `name`, `manufacturer`,
+  `model`, `channels[]`).
+- `channels[].kind` — drives the Home Assistant component type:
+  - `analog` → HA `sensor` (`unit_of_measurement`, `device_class`, optional
+    `value_template` for scaling raw ADC readings).
+  - `analog_threshold_binary` → HA `binary_sensor` derived from an ADC value crossing
+    `threshold`.
+  - `digital_binary` → HA `binary_sensor` from a true digital IO line.
+
+## Environment variable overrides
+
+Format: `XBEE_GATEWAY_<SECTION>__<KEY>` (double underscore = nesting). Always wins over
+the file. This is the intended way to supply secrets — never put a real broker password
+in `config.json`.
+
+```
+XBEE_GATEWAY_MQTT__HOST=mqtt.example.local
+XBEE_GATEWAY_MQTT__USERNAME=someuser
+XBEE_GATEWAY_MQTT__PASSWORD=somepassword
+XBEE_GATEWAY_COORDINATOR__SERIAL_PORT=/dev/ttyUSB0
+```
+
+Under systemd, set these via `/etc/xbee-gateway/xbee-gateway.env`, referenced by the unit
+file's `EnvironmentFile=-...` directive (copy from `.env.example`).

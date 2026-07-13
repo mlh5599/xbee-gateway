@@ -1,0 +1,26 @@
+[Unit]
+Description=XBee to MQTT Gateway
+After=network-online.target
+Wants=network-online.target
+# Uncomment if the coordinator reset line / status LED uses pigpio:
+# After=pigpiod.service
+# Wants=pigpiod.service
+
+[Service]
+Type=simple
+User=xbeegateway
+Group=xbeegateway
+WorkingDirectory=/opt/xbee-gateway
+Environment=XBEE_GATEWAY_CONFIG=/etc/xbee-gateway/config.json
+Environment=XBEE_GATEWAY_DEVICES=/etc/xbee-gateway/devices.json
+EnvironmentFile=-/etc/xbee-gateway/xbee-gateway.env
+ExecStart=/opt/xbee-gateway/venv/bin/xbee-gateway
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+NoNewPrivileges=true
+SupplementaryGroups=dialout gpio
+
+[Install]
+WantedBy=multi-user.target

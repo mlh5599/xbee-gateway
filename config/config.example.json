@@ -1,0 +1,37 @@
+{
+  "mqtt": {
+    "host": "mqtt.example.local",
+    "port": 1883,
+    "username": "",
+    "password": "",
+    "client_id": "xbee-gateway",
+    "base_topic": "xbeegateway",
+    "discovery_prefix": "homeassistant",
+    "availability_topic": "xbeegateway/status",
+    "tls": false
+  },
+  "coordinator": {
+    "serial_port": "/dev/ttyUSB0",
+    "baud_rate": 9600,
+    "reset_gpio_pin": -1,
+    "status_led_gpio_pin": -1,
+    "gpio_backend": "none",
+    "connect_retry_attempts": 5,
+    "connect_retry_backoff_seconds": 2,
+    "at_settings": {
+      "pan_id": { "at": "ID", "value": "0x2000", "verify_before_write": true },
+      "scan_channels": { "at": "SC", "value": "0xFFFF", "verify_before_write": true },
+      "scan_duration": { "at": "SD", "value": "0x03", "verify_before_write": true },
+      "zigbee_stack_profile": { "at": "ZS", "value": "0x00", "verify_before_write": true },
+      "node_join_time": { "at": "NJ", "value": "0xFF", "verify_before_write": true },
+      "node_identifier": { "at": "NI", "value": "xbee-gateway", "verify_before_write": true },
+      "encryption_enable": { "at": "EE", "value": "0x01", "verify_before_write": true },
+      "encryption_options": { "at": "EO", "value": "0x02", "verify_before_write": true },
+      "network_encryption_key": { "at": "KY", "value": "", "verify_before_write": false, "secret": true },
+      "api_enable": { "at": "AP", "value": "0x01", "verify_before_write": true }
+    }
+  },
+  "logging": {
+    "level": "INFO"
+  }
+}
