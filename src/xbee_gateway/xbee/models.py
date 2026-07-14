@@ -23,12 +23,13 @@ class Channel:
     value_template: str | None = None
     threshold: float | None = None
     hysteresis: float = 0.0
+    direction: str = "above"  # "above" | "below" — which side of threshold means "triggered"
     above_threshold_payload: str = "ON"
     below_threshold_payload: str = "OFF"
     payload_on: str = "ON"
     payload_off: str = "OFF"
     last_value: float | str | None = None
-    above_threshold: bool | None = None
+    triggered: bool | None = None
 
     def slug(self) -> str:
         return _SLUG_NON_ALNUM.sub("-", self.name.lower()).strip("-")

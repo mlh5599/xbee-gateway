@@ -27,6 +27,7 @@ def _channel_from_config(channel_cfg) -> Channel:
         value_template=channel_cfg.value_template,
         threshold=channel_cfg.threshold,
         hysteresis=channel_cfg.hysteresis,
+        direction=channel_cfg.direction,
         above_threshold_payload=channel_cfg.above_threshold_payload,
         below_threshold_payload=channel_cfg.below_threshold_payload,
         payload_on=channel_cfg.payload_on,

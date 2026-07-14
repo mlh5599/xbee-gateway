@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Added `direction` (`"above"` | `"below"`, default `"above"`) to `analog_threshold_binary`
+  channels: NTC thermistors read *lower* as temperature rises, so the shower-monitor use
+  case needs "ON when raw value drops below threshold" rather than the original
+  above-threshold-only comparison. Hysteresis now applies symmetrically in either
+  direction. Default preserves existing above-threshold behavior.
 - Fixed IO sample channel lookups using `str(line)` (e.g. `"IOLine.DIO3_AD3"`) instead of
   `line.name` (`"DIO3_AD3"`), which meant configured channels never matched incoming
   samples — entities were discovered in Home Assistant but never received a state update

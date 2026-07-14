@@ -75,6 +75,7 @@ class ChannelConfig:
     value_template: Optional[str] = None
     threshold: Optional[float] = None
     hysteresis: float = 0.0
+    direction: str = "above"  # "above" | "below" — which side of threshold means "triggered"
     above_threshold_payload: str = "ON"
     below_threshold_payload: str = "OFF"
     payload_on: str = "ON"

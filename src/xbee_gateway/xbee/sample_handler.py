@@ -52,10 +52,17 @@ class IOSampleHandler:
 
         if channel.kind is ChannelKind.ANALOG_THRESHOLD_BINARY:
             threshold = channel.threshold or 0
-            compare_point = threshold - channel.hysteresis if channel.above_threshold else threshold
-            above = raw_value > compare_point
-            channel.above_threshold = above
-            payload = channel.above_threshold_payload if above else channel.below_threshold_payload
+            if channel.direction == "below":
+                # NTC-style: reading falls as the tracked condition intensifies.
+                compare_point = threshold + channel.hysteresis if channel.triggered else threshold
+                triggered = raw_value < compare_point
+            else:
+                compare_point = threshold - channel.hysteresis if channel.triggered else threshold
+                triggered = raw_value > compare_point
+            channel.triggered = triggered
+            payload = (
+                channel.above_threshold_payload if triggered else channel.below_threshold_payload
+            )
         else:  # DIGITAL_BINARY
             payload = channel.payload_on if raw_value == IOValue.HIGH else channel.payload_off
 

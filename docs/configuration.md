@@ -46,9 +46,15 @@ Copy from `config/devices.example.json`. Path via `--devices` CLI flag or
     `value_template` for scaling raw ADC readings). Publishes on every sample.
   - `analog_threshold_binary` → HA `binary_sensor` derived from an ADC value crossing
     `threshold`. Publishes only on a debounced state change.
-    - `hysteresis` (default `0`) — once the value crosses above `threshold` (entity
-      turns ON), it must drop back below `threshold - hysteresis` to turn OFF again.
-      Use this to stop a reading that hovers near `threshold` from flapping the entity
+    - `direction` (default `"above"`) — which side of `threshold` counts as triggered.
+      `"above"`: raw value > threshold → ON (most sensors — moisture, current clamps).
+      `"below"`: raw value < threshold → ON. Use this for NTC thermistors, where
+      resistance (and so the raw ADC reading) *drops* as the monitored condition heats
+      up.
+    - `hysteresis` (default `0`) — once triggered ON, the value must cross back past
+      `threshold` by this amount to turn OFF again (past `threshold - hysteresis` for
+      `direction: "above"`, or `threshold + hysteresis` for `direction: "below"`). Use
+      this to stop a reading that hovers near `threshold` from flapping the entity
       state. `0` reproduces the old hard-threshold behavior.
   - `digital_binary` → HA `binary_sensor` from a true digital IO line.
 

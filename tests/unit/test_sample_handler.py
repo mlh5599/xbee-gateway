@@ -88,6 +88,29 @@ def test_threshold_binary_hysteresis_still_requires_crossing_threshold_to_turn_o
     assert state_publishes[0][1] == "OFF"
 
 
+def test_threshold_binary_below_direction_triggers_on_falling_value(fake_mqtt, mqtt_config):
+    # NTC thermistor: raw ADC value drops as the tracked condition (hot water) intensifies.
+    handler = _handler(
+        fake_mqtt,
+        mqtt_config,
+        channel_kind="analog_threshold_binary",
+        threshold=525,
+        hysteresis=10,
+        direction="below",
+    )
+    fake_mqtt.published.clear()
+
+    remote = FakeRemoteXBee("0013A20012345678")
+    handler.handle_io_sample(FakeIOSample(analog={"AD1": 380}), remote)  # below 525 -> ON
+    handler.handle_io_sample(FakeIOSample(analog={"AD1": 530}), remote)  # hysteresis band -> ON
+    handler.handle_io_sample(FakeIOSample(analog={"AD1": 670}), remote)  # above 535 -> OFF
+
+    state_publishes = [p for p in fake_mqtt.published if p[0].endswith("/state")]
+    assert len(state_publishes) == 2
+    assert state_publishes[0][1] == "ON"
+    assert state_publishes[1][1] == "OFF"
+
+
 def test_digital_binary_uses_configured_payloads(fake_mqtt, mqtt_config):
     handler = _handler(
         fake_mqtt,
