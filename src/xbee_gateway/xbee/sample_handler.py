@@ -6,6 +6,8 @@ only publish on a debounced state change, matching the legacy gateway's behavior
 """
 from __future__ import annotations
 
+from digi.xbee.io import IOValue
+
 from xbee_gateway.config.schema import MqttConfig
 from xbee_gateway.mqtt.client import MqttPort
 from xbee_gateway.xbee.device_registry import DeviceRegistry
@@ -26,17 +28,21 @@ class IOSampleHandler:
 
         if io_sample.has_analog_values():
             for line, raw_value in io_sample.analog_values.items():
-                self._publish_channel_value(device, str(line), raw_value)
+                self._publish_channel_value(device, line.name, raw_value)
 
         if io_sample.has_digital_values():
             for line, raw_value in io_sample.digital_values.items():
-                self._publish_channel_value(device, str(line), raw_value)
+                self._publish_channel_value(device, line.name, raw_value)
 
     def _publish_channel_value(self, device, io_line: str, raw_value) -> None:
-        channel = device.channels.get(io_line)
-        if channel is None:
+        channels = device.channels.get(io_line)
+        if not channels:
             return
 
+        for channel in channels:
+            self._publish_single_channel(device, channel, raw_value)
+
+    def _publish_single_channel(self, device, channel, raw_value) -> None:
         topic = channel.state_topic(self._mqtt_config.base_topic, device.address)
 
         if channel.kind is ChannelKind.ANALOG:
@@ -45,10 +51,13 @@ class IOSampleHandler:
             return
 
         if channel.kind is ChannelKind.ANALOG_THRESHOLD_BINARY:
-            above = raw_value > (channel.threshold or 0)
+            threshold = channel.threshold or 0
+            compare_point = threshold - channel.hysteresis if channel.above_threshold else threshold
+            above = raw_value > compare_point
+            channel.above_threshold = above
             payload = channel.above_threshold_payload if above else channel.below_threshold_payload
         else:  # DIGITAL_BINARY
-            payload = channel.payload_on if raw_value else channel.payload_off
+            payload = channel.payload_on if raw_value == IOValue.HIGH else channel.payload_off
 
         if payload == channel.last_value:
             return

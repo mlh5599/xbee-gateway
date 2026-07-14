@@ -74,10 +74,23 @@ class FakeRemoteXBee:
         return self._address
 
 
+class FakeIOLine:
+    """Duck-types the one attribute of digi.xbee.io.IOLine that sample_handler
+    relies on (`.name`) — real IOLine keys stringify as "IOLine.DIO3_AD3", not
+    "DIO3_AD3", which is why production code must use `.name`, not `str()`.
+    """
+
+    def __init__(self, name):
+        self.name = name
+
+    def __repr__(self):
+        return f"FakeIOLine({self.name!r})"
+
+
 class FakeIOSample:
     def __init__(self, analog=None, digital=None):
-        self.analog_values = analog or {}
-        self.digital_values = digital or {}
+        self.analog_values = {FakeIOLine(k): v for k, v in (analog or {}).items()}
+        self.digital_values = {FakeIOLine(k): v for k, v in (digital or {}).items()}
 
     def has_analog_values(self):
         return bool(self.analog_values)

@@ -26,6 +26,7 @@ def _channel_from_config(channel_cfg) -> Channel:
         device_class=channel_cfg.device_class,
         value_template=channel_cfg.value_template,
         threshold=channel_cfg.threshold,
+        hysteresis=channel_cfg.hysteresis,
         above_threshold_payload=channel_cfg.above_threshold_payload,
         below_threshold_payload=channel_cfg.below_threshold_payload,
         payload_on=channel_cfg.payload_on,
@@ -34,7 +35,19 @@ def _channel_from_config(channel_cfg) -> Channel:
 
 
 def _device_from_config(device_cfg: DeviceConfig) -> RemoteDevice:
-    channels = {c.io_line: _channel_from_config(c) for c in device_cfg.channels}
+    channels: dict[str, list[Channel]] = {}
+    seen_slugs: dict[str, str] = {}
+    for channel_cfg in device_cfg.channels:
+        channel = _channel_from_config(channel_cfg)
+        slug = channel.slug()
+        if slug in seen_slugs:
+            raise ValueError(
+                f"Device {device_cfg.address!r} has two channels that both resolve to "
+                f"slug {slug!r} ({seen_slugs[slug]!r} and {channel.name!r}) — entity "
+                "names must be unique per device."
+            )
+        seen_slugs[slug] = channel.name
+        channels.setdefault(channel.io_line, []).append(channel)
     return RemoteDevice(
         address=device_cfg.address,
         name=device_cfg.name,
@@ -50,17 +63,17 @@ def _synthesize_device(address: str, io_sample) -> RemoteDevice:
     Preserves the currently-running legacy gateway's "any device that talks gets
     registered" behavior out of the box when auto_register_unknown_devices is set.
     """
-    channels: dict[str, Channel] = {}
+    channels: dict[str, list[Channel]] = {}
     if io_sample.has_analog_values():
         for line in io_sample.analog_values:
-            channels[str(line)] = Channel(
-                io_line=str(line), name=str(line), kind=ChannelKind.ANALOG
-            )
+            channels[line.name] = [
+                Channel(io_line=line.name, name=line.name, kind=ChannelKind.ANALOG)
+            ]
     if io_sample.has_digital_values():
         for line in io_sample.digital_values:
-            channels[str(line)] = Channel(
-                io_line=str(line), name=str(line), kind=ChannelKind.DIGITAL_BINARY
-            )
+            channels[line.name] = [
+                Channel(io_line=line.name, name=line.name, kind=ChannelKind.DIGITAL_BINARY)
+            ]
     return RemoteDevice(
         address=address,
         name=f"XBee {address}",
@@ -99,6 +112,7 @@ class DeviceRegistry:
         return device
 
     def _publish_discovery(self, device: RemoteDevice) -> None:
-        for channel in device.channels.values():
-            topic, payload = build_discovery_payload(device, channel, self._mqtt_config)
-            self._mqtt.publish(topic, json.dumps(payload), qos=1, retain=True)
+        for channels in device.channels.values():
+            for channel in channels:
+                topic, payload = build_discovery_payload(device, channel, self._mqtt_config)
+                self._mqtt.publish(topic, json.dumps(payload), qos=1, retain=True)

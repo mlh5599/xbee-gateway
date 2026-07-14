@@ -3,34 +3,54 @@
   "devices": [
     {
       "address": "0013A20012345678",
-      "name": "Example Sensor Node",
+      "name": "Shower Monitor",
       "manufacturer": "Example Manufacturer",
       "model": "XBee Sensor",
       "channels": [
         {
-          "io_line": "AD1_DIO1",
-          "name": "Soil Moisture",
-          "kind": "analog",
-          "unit_of_measurement": "%",
-          "device_class": "moisture",
-          "value_template": "{{ value | float / 1023 * 100 | round(1) }}"
-        },
-        {
-          "io_line": "AD2_DIO2",
-          "name": "Water Present",
+          "io_line": "DIO1_AD1",
+          "name": "Master Bathroom Shower",
           "kind": "analog_threshold_binary",
-          "device_class": "moisture",
-          "threshold": 500,
+          "device_class": "running",
+          "threshold": 600,
+          "hysteresis": 40,
           "above_threshold_payload": "ON",
           "below_threshold_payload": "OFF"
         },
         {
-          "io_line": "DIO3",
-          "name": "Door Sensor",
-          "kind": "digital_binary",
-          "device_class": "door",
-          "payload_on": "ON",
-          "payload_off": "OFF"
+          "io_line": "DIO1_AD1",
+          "name": "Master Bathroom Pipe Temp (Raw)",
+          "kind": "analog"
+        },
+        {
+          "io_line": "DIO2_AD2",
+          "name": "Guest Bathroom Shower",
+          "kind": "analog_threshold_binary",
+          "device_class": "running",
+          "threshold": 600,
+          "hysteresis": 40,
+          "above_threshold_payload": "ON",
+          "below_threshold_payload": "OFF"
+        },
+        {
+          "io_line": "DIO2_AD2",
+          "name": "Guest Bathroom Pipe Temp (Raw)",
+          "kind": "analog"
+        },
+        {
+          "io_line": "DIO3_AD3",
+          "name": "Basement Bathroom Shower",
+          "kind": "analog_threshold_binary",
+          "device_class": "running",
+          "threshold": 600,
+          "hysteresis": 40,
+          "above_threshold_payload": "ON",
+          "below_threshold_payload": "OFF"
+        },
+        {
+          "io_line": "DIO3_AD3",
+          "name": "Basement Bathroom Pipe Temp (Raw)",
+          "kind": "analog"
         }
       ]
     }

@@ -1,3 +1,5 @@
+from digi.xbee.io import IOValue
+
 from xbee_gateway.config.schema import ChannelConfig, DeviceConfig, DevicesConfig
 from xbee_gateway.xbee.device_registry import DeviceRegistry
 from xbee_gateway.xbee.sample_handler import IOSampleHandler
@@ -51,6 +53,41 @@ def test_threshold_binary_only_publishes_on_change(fake_mqtt, mqtt_config):
     assert state_publishes[1][1] == "OFF"
 
 
+def test_threshold_binary_hysteresis_suppresses_flapping_near_threshold(fake_mqtt, mqtt_config):
+    handler = _handler(
+        fake_mqtt, mqtt_config, channel_kind="analog_threshold_binary", threshold=50, hysteresis=10
+    )
+    fake_mqtt.published.clear()
+
+    remote = FakeRemoteXBee("0013A20012345678")
+    handler.handle_io_sample(FakeIOSample(analog={"AD1": 60}), remote)  # above 50 -> ON
+    handler.handle_io_sample(FakeIOSample(analog={"AD1": 45}), remote)  # hysteresis band -> ON
+    handler.handle_io_sample(FakeIOSample(analog={"AD1": 42}), remote)  # still above 40 -> stays ON
+    handler.handle_io_sample(FakeIOSample(analog={"AD1": 38}), remote)  # below 40 -> OFF
+
+    state_publishes = [p for p in fake_mqtt.published if p[0].endswith("/state")]
+    assert len(state_publishes) == 2
+    assert state_publishes[0][1] == "ON"
+    assert state_publishes[1][1] == "OFF"
+
+
+def test_threshold_binary_hysteresis_still_requires_crossing_threshold_to_turn_on(
+    fake_mqtt, mqtt_config
+):
+    handler = _handler(
+        fake_mqtt, mqtt_config, channel_kind="analog_threshold_binary", threshold=50, hysteresis=10
+    )
+    fake_mqtt.published.clear()
+
+    remote = FakeRemoteXBee("0013A20012345678")
+    # Never above 50, so hysteresis band (40-50) is irrelevant while OFF.
+    handler.handle_io_sample(FakeIOSample(analog={"AD1": 45}), remote)
+
+    state_publishes = [p for p in fake_mqtt.published if p[0].endswith("/state")]
+    assert len(state_publishes) == 1
+    assert state_publishes[0][1] == "OFF"
+
+
 def test_digital_binary_uses_configured_payloads(fake_mqtt, mqtt_config):
     handler = _handler(
         fake_mqtt,
@@ -62,7 +99,26 @@ def test_digital_binary_uses_configured_payloads(fake_mqtt, mqtt_config):
     fake_mqtt.published.clear()
 
     remote = FakeRemoteXBee("0013A20012345678")
-    handler.handle_io_sample(FakeIOSample(digital={"AD1": True}), remote)
+    handler.handle_io_sample(FakeIOSample(digital={"AD1": IOValue.HIGH}), remote)
 
     state_publishes = [p for p in fake_mqtt.published if p[0].endswith("/state")]
     assert state_publishes[0][1] == "OPEN"
+
+
+def test_digital_binary_low_value_uses_off_payload(fake_mqtt, mqtt_config):
+    # Regression test: digi.xbee.io.IOValue.LOW is a nonzero enum member, so it is
+    # truthy in Python — `if raw_value` alone can't distinguish LOW from HIGH.
+    handler = _handler(
+        fake_mqtt,
+        mqtt_config,
+        channel_kind="digital_binary",
+        payload_on="OPEN",
+        payload_off="CLOSED",
+    )
+    fake_mqtt.published.clear()
+
+    remote = FakeRemoteXBee("0013A20012345678")
+    handler.handle_io_sample(FakeIOSample(digital={"AD1": IOValue.LOW}), remote)
+
+    state_publishes = [p for p in fake_mqtt.published if p[0].endswith("/state")]
+    assert state_publishes[0][1] == "CLOSED"

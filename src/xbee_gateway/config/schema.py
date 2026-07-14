@@ -5,8 +5,11 @@ low-resource ARM hardware where wheel availability/build time is a real risk.
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Optional
+
+_SLUG_NON_ALNUM = re.compile(r"[^a-z0-9]+")
 
 
 @dataclass
@@ -71,13 +74,14 @@ class ChannelConfig:
     device_class: Optional[str] = None
     value_template: Optional[str] = None
     threshold: Optional[float] = None
+    hysteresis: float = 0.0
     above_threshold_payload: str = "ON"
     below_threshold_payload: str = "OFF"
     payload_on: str = "ON"
     payload_off: str = "OFF"
 
     def slug(self) -> str:
-        return self.io_line.replace(".", "-").replace("_", "-").lower()
+        return _SLUG_NON_ALNUM.sub("-", self.name.lower()).strip("-")
 
 
 @dataclass

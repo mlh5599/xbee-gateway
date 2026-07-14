@@ -31,12 +31,25 @@ Copy from `config/devices.example.json`. Path via `--devices` CLI flag or
   isn't listed here gets a synthesized entry with generic channels and is published to HA
   immediately (with a `WARNING` logged). Set `false` to require explicit configuration.
 - `devices[]` — one entry per remote XBee end device (`address`, `name`, `manufacturer`,
-  `model`, `channels[]`).
+  `model`, `channels[]`). All channels on a device share one Home Assistant device page
+  (grouped by `address`) — see `config/devices.example.json`'s "Shower Monitor" for an
+  example of one XBee node exposing several rooms' worth of entities under one device.
+- Multiple `channels[]` entries may share the same `io_line` — every IO sample on that
+  line is fanned out to each configured channel, so one physical reading can back more
+  than one HA entity (e.g. a raw `analog` sensor for tuning, alongside an
+  `analog_threshold_binary` derived state for automations). Each channel still needs a
+  distinct `name` — entity topics/IDs are derived from `name`, and the gateway refuses to
+  start (raises at config load) if two channels on the same device resolve to the same
+  slug.
 - `channels[].kind` — drives the Home Assistant component type:
   - `analog` → HA `sensor` (`unit_of_measurement`, `device_class`, optional
-    `value_template` for scaling raw ADC readings).
+    `value_template` for scaling raw ADC readings). Publishes on every sample.
   - `analog_threshold_binary` → HA `binary_sensor` derived from an ADC value crossing
-    `threshold`.
+    `threshold`. Publishes only on a debounced state change.
+    - `hysteresis` (default `0`) — once the value crosses above `threshold` (entity
+      turns ON), it must drop back below `threshold - hysteresis` to turn OFF again.
+      Use this to stop a reading that hovers near `threshold` from flapping the entity
+      state. `0` reproduces the old hard-threshold behavior.
   - `digital_binary` → HA `binary_sensor` from a true digital IO line.
 
 ## Environment variable overrides
