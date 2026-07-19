@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Fixed MQTT availability getting stuck retained `offline` after a broker-side
+  reconnect (#26): the birth message was only published once, right after the initial
+  `connect()`, so paho-mqtt's automatic reconnects (which re-fire `on_connect` but don't
+  go through that startup path) never re-announced `online`. The birth-message publish
+  now lives in the `on_connect` callback itself, so it fires on every successful
+  connect/reconnect, not just process startup. Also added a belt-and-suspenders
+  safeguard, `mqtt.availability_reassert_interval` (default 3600s/hourly): while the client
+  reports itself connected, retained `online` is periodically re-published even without
+  a reconnect event, in case the retained value gets clobbered by anything else. `0`
+  disables it.
 - Added `direction` (`"above"` | `"below"`, default `"above"`) to `analog_threshold_binary`
   channels: NTC thermistors read *lower* as temperature rises, so the shower-monitor use
   case needs "ON when raw value drops below threshold" rather than the original

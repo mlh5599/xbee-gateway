@@ -23,6 +23,10 @@ class MqttConfig:
     discovery_prefix: str = "homeassistant"
     availability_topic: str = "xbeegateway/status"
     tls: bool = False
+    # Belt-and-suspenders re-assert of retained "online" while connected, guarding against
+    # the retained value getting clobbered by anything other than our own on_connect (e.g.
+    # broker losing retained state, another publisher). 0 disables.
+    availability_reassert_interval: float = 3600.0
 
 
 @dataclass

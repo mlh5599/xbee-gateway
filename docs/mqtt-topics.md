@@ -31,6 +31,10 @@ Published on every new reading (analog) or on debounced state change (thresholde
 xbeegateway/status
 ```
 
-`online` published on connect, `offline` set as the MQTT Last Will and Testament (so the
-broker publishes it automatically on ungraceful disconnect) and also published explicitly
-on graceful shutdown.
+`online` published on every connect and reconnect (via the client's `on_connect`
+callback, not a one-time startup call), `offline` set as the MQTT Last Will and Testament
+(so the broker publishes it automatically on ungraceful disconnect) and also published
+explicitly on graceful shutdown. `online` is additionally re-asserted on a timer
+(`mqtt.availability_reassert_interval`, default 3600s/hourly) while the client reports
+itself connected, as a safeguard against the retained value getting clobbered by
+anything other than our own reconnect path.

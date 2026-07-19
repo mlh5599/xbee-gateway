@@ -49,7 +49,6 @@ def main(argv=None) -> None:
 
     mqtt = PahoMqttClient(config.mqtt)
     mqtt.connect()
-    mqtt.publish_availability(online=True)
 
     registry = DeviceRegistry(devices_config, mqtt, config.mqtt)
     sample_handler = IOSampleHandler(registry, mqtt, config.mqtt)

@@ -16,6 +16,7 @@ Copy from `config/config.example.json`. Path via `--config` CLI flag or
 | `mqtt.base_topic` | Prefix for state/availability topics, e.g. `xbeegateway`. |
 | `mqtt.discovery_prefix` | Home Assistant MQTT discovery prefix, normally `homeassistant`. |
 | `mqtt.availability_topic` | Gateway-wide online/offline topic (LWT). |
+| `mqtt.availability_reassert_interval` | Seconds between re-publishing retained `online` while connected, as a safeguard beyond the on-connect birth message. `0` disables. Default `3600` (hourly). |
 | `coordinator.serial_port` / `baud_rate` | Serial connection to the local XBee coordinator radio. |
 | `coordinator.reset_gpio_pin` / `status_led_gpio_pin` | GPIO pin numbers, `-1` to disable. |
 | `coordinator.gpio_backend` | `"pigpio"` or `"none"` — explicit choice, never auto-detected. |
