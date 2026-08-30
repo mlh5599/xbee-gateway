@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- **Breaking:** `analog_threshold_binary` channels now take two independent setpoints,
+  `on_threshold` and `off_threshold`, instead of `threshold` + `hysteresis`. The single
+  threshold plus one-sided deadband tripped late and, in practice, missed the many
+  showers where the pipe warms but never fully crosses the line — the derived `running`
+  state stayed `off` for most real events. With `on_threshold` set just past the resting
+  reading, the state turns on as soon as the pipe starts to ramp; `off_threshold` (on
+  the same side of resting) sets where it releases, and the gap between the two is the
+  anti-flap hold band. Migration: rename `threshold` → `on_threshold` and move it closer
+  to the resting level; set `off_threshold` to the old `threshold ± hysteresis` value
+  (or wherever you want the release), keeping both setpoints on the resting side of the
+  swing. `direction` is unchanged. `config/devices.example.json` shows tuned values for
+  the three-room shower monitor.
 - Fixed MQTT availability getting stuck retained `offline` after a broker-side
   reconnect (#26): the birth message was only published once, right after the initial
   `connect()`, so paho-mqtt's automatic reconnects (which re-fire `on_connect` but don't
@@ -14,18 +26,15 @@
   disables it.
 - Added `direction` (`"above"` | `"below"`, default `"above"`) to `analog_threshold_binary`
   channels: NTC thermistors read *lower* as temperature rises, so the shower-monitor use
-  case needs "ON when raw value drops below threshold" rather than the original
-  above-threshold-only comparison. Hysteresis now applies symmetrically in either
-  direction. Default preserves existing above-threshold behavior.
+  case needs "ON when the raw value drops" rather than the original above-only comparison.
+  `direction` picks which side the `on_threshold`/`off_threshold` comparisons face.
+  Default preserves existing above-threshold behavior.
 - Fixed IO sample channel lookups using `str(line)` (e.g. `"IOLine.DIO3_AD3"`) instead of
   `line.name` (`"DIO3_AD3"`), which meant configured channels never matched incoming
   samples — entities were discovered in Home Assistant but never received a state update
   and stayed "Unknown". Also fixed digital-channel state always evaluating truthy
   (`digi.xbee.io.IOValue.LOW` is a nonzero, truthy enum member) by comparing explicitly
   against `IOValue.HIGH`.
-- Added `hysteresis` to `analog_threshold_binary` channels: once triggered ON, the
-  reading must drop below `threshold - hysteresis` to go OFF again, instead of a single
-  hard threshold that can flap.
 - **Breaking:** a device's `channels[]` may now repeat the same `io_line` (fan-out one
   physical reading to multiple HA entities). As a consequence, entity topic/unique_id
   slugs are now derived from each channel's `name` instead of its `io_line` (previously

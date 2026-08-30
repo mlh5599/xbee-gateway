@@ -79,7 +79,7 @@ def test_one_io_line_fans_out_to_raw_sensor_and_derived_binary_entity(
     fake_mqtt, fake_radio, fake_gpio
 ):
     """Shower Monitor scenario: one thermistor (one io_line) backs both a raw ADC
-    sensor (every sample) and a hysteresis-debounced running/not-running binary_sensor,
+    sensor (every sample) and a debounced running/not-running binary_sensor,
     both grouped under the same HA device.
     """
     mqtt_config = MqttConfig()
@@ -94,8 +94,8 @@ def test_one_io_line_fans_out_to_raw_sensor_and_derived_binary_entity(
                         name="Master Bathroom Shower",
                         kind="analog_threshold_binary",
                         device_class="running",
-                        threshold=600,
-                        hysteresis=40,
+                        on_threshold=600,
+                        off_threshold=560,
                     ),
                     ChannelConfig(
                         io_line="DIO1_AD1",
@@ -127,8 +127,8 @@ def test_one_io_line_fans_out_to_raw_sensor_and_derived_binary_entity(
     fake_mqtt.published.clear()
 
     remote = FakeRemoteXBee("0013A20012345678")
-    fake_radio.callback(FakeIOSample(analog={"DIO1_AD1": 650}), remote)  # above threshold
-    fake_radio.callback(FakeIOSample(analog={"DIO1_AD1": 580}), remote)  # within hysteresis band
+    fake_radio.callback(FakeIOSample(analog={"DIO1_AD1": 650}), remote)  # >= on_threshold -> ON
+    fake_radio.callback(FakeIOSample(analog={"DIO1_AD1": 580}), remote)  # hold band -> stays ON
 
     state_publishes = [p for p in fake_mqtt.published if p[0].endswith("/state")]
     raw_publishes = [p for p in state_publishes if p[1] == 650 or p[1] == 580]

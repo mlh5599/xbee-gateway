@@ -77,9 +77,9 @@ class ChannelConfig:
     unit_of_measurement: Optional[str] = None
     device_class: Optional[str] = None
     value_template: Optional[str] = None
-    threshold: Optional[float] = None
-    hysteresis: float = 0.0
-    direction: str = "above"  # "above" | "below" — which side of threshold means "triggered"
+    on_threshold: Optional[float] = None
+    off_threshold: Optional[float] = None
+    direction: str = "above"  # "above" | "below" — which side is "hotter"/triggered
     above_threshold_payload: str = "ON"
     below_threshold_payload: str = "OFF"
     payload_on: str = "ON"

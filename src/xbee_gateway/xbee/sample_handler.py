@@ -51,15 +51,27 @@ class IOSampleHandler:
             return
 
         if channel.kind is ChannelKind.ANALOG_THRESHOLD_BINARY:
-            threshold = channel.threshold or 0
-            if channel.direction == "below":
-                # NTC-style: reading falls as the tracked condition intensifies.
-                compare_point = threshold + channel.hysteresis if channel.triggered else threshold
-                triggered = raw_value < compare_point
+            # Two independent setpoints, not one threshold + deadband: turn ON as soon as
+            # the reading passes `on_threshold` (set close to the resting level so a slow
+            # ramp trips early), hold state through the band, turn OFF once it comes back
+            # past `off_threshold`. `direction: "below"` is the NTC case, where the raw ADC
+            # reading falls as the monitored condition heats up.
+            on_at, off_at = channel.on_threshold, channel.off_threshold
+            if not channel.triggered:
+                if channel.direction == "below":
+                    crossed_on = on_at is not None and raw_value <= on_at
+                else:
+                    crossed_on = on_at is not None and raw_value >= on_at
+                if crossed_on:
+                    channel.triggered = True
             else:
-                compare_point = threshold - channel.hysteresis if channel.triggered else threshold
-                triggered = raw_value > compare_point
-            channel.triggered = triggered
+                if channel.direction == "below":
+                    crossed_off = off_at is not None and raw_value >= off_at
+                else:
+                    crossed_off = off_at is not None and raw_value <= off_at
+                if crossed_off:
+                    channel.triggered = False
+            triggered = bool(channel.triggered)
             payload = (
                 channel.above_threshold_payload if triggered else channel.below_threshold_payload
             )

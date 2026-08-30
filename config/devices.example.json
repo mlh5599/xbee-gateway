@@ -12,8 +12,8 @@
           "name": "Master Bathroom Shower",
           "kind": "analog_threshold_binary",
           "device_class": "running",
-          "threshold": 525,
-          "hysteresis": 10,
+          "on_threshold": 620,
+          "off_threshold": 640,
           "direction": "below",
           "above_threshold_payload": "ON",
           "below_threshold_payload": "OFF"
@@ -28,8 +28,8 @@
           "name": "Guest Bathroom Shower",
           "kind": "analog_threshold_binary",
           "device_class": "running",
-          "threshold": 525,
-          "hysteresis": 10,
+          "on_threshold": 640,
+          "off_threshold": 655,
           "direction": "below",
           "above_threshold_payload": "ON",
           "below_threshold_payload": "OFF"
@@ -44,8 +44,8 @@
           "name": "Basement Bathroom Shower",
           "kind": "analog_threshold_binary",
           "device_class": "running",
-          "threshold": 525,
-          "hysteresis": 10,
+          "on_threshold": 655,
+          "off_threshold": 672,
           "direction": "below",
           "above_threshold_payload": "ON",
           "below_threshold_payload": "OFF"

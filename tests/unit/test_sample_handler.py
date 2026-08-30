@@ -38,14 +38,18 @@ def test_analog_reading_publishes_every_sample(fake_mqtt, mqtt_config):
 
 def test_threshold_binary_only_publishes_on_change(fake_mqtt, mqtt_config):
     handler = _handler(
-        fake_mqtt, mqtt_config, channel_kind="analog_threshold_binary", threshold=50
+        fake_mqtt,
+        mqtt_config,
+        channel_kind="analog_threshold_binary",
+        on_threshold=50,
+        off_threshold=50,
     )
     fake_mqtt.published.clear()
 
     remote = FakeRemoteXBee("0013A20012345678")
-    handler.handle_io_sample(FakeIOSample(analog={"AD1": 100}), remote)  # above threshold -> ON
-    handler.handle_io_sample(FakeIOSample(analog={"AD1": 90}), remote)  # still above -> no publish
-    handler.handle_io_sample(FakeIOSample(analog={"AD1": 10}), remote)  # below -> OFF
+    handler.handle_io_sample(FakeIOSample(analog={"AD1": 100}), remote)  # >= on_threshold -> ON
+    handler.handle_io_sample(FakeIOSample(analog={"AD1": 90}), remote)  # still on -> no publish
+    handler.handle_io_sample(FakeIOSample(analog={"AD1": 10}), remote)  # <= off_threshold -> OFF
 
     state_publishes = [p for p in fake_mqtt.published if p[0].endswith("/state")]
     assert len(state_publishes) == 2
@@ -53,17 +57,21 @@ def test_threshold_binary_only_publishes_on_change(fake_mqtt, mqtt_config):
     assert state_publishes[1][1] == "OFF"
 
 
-def test_threshold_binary_hysteresis_suppresses_flapping_near_threshold(fake_mqtt, mqtt_config):
+def test_threshold_binary_hold_band_suppresses_flapping(fake_mqtt, mqtt_config):
     handler = _handler(
-        fake_mqtt, mqtt_config, channel_kind="analog_threshold_binary", threshold=50, hysteresis=10
+        fake_mqtt,
+        mqtt_config,
+        channel_kind="analog_threshold_binary",
+        on_threshold=50,
+        off_threshold=40,
     )
     fake_mqtt.published.clear()
 
     remote = FakeRemoteXBee("0013A20012345678")
-    handler.handle_io_sample(FakeIOSample(analog={"AD1": 60}), remote)  # above 50 -> ON
-    handler.handle_io_sample(FakeIOSample(analog={"AD1": 45}), remote)  # hysteresis band -> ON
-    handler.handle_io_sample(FakeIOSample(analog={"AD1": 42}), remote)  # still above 40 -> stays ON
-    handler.handle_io_sample(FakeIOSample(analog={"AD1": 38}), remote)  # below 40 -> OFF
+    handler.handle_io_sample(FakeIOSample(analog={"AD1": 60}), remote)  # >= 50 -> ON
+    handler.handle_io_sample(FakeIOSample(analog={"AD1": 45}), remote)  # hold band -> stays ON
+    handler.handle_io_sample(FakeIOSample(analog={"AD1": 42}), remote)  # hold band -> stays ON
+    handler.handle_io_sample(FakeIOSample(analog={"AD1": 38}), remote)  # <= 40 -> OFF
 
     state_publishes = [p for p in fake_mqtt.published if p[0].endswith("/state")]
     assert len(state_publishes) == 2
@@ -71,16 +79,20 @@ def test_threshold_binary_hysteresis_suppresses_flapping_near_threshold(fake_mqt
     assert state_publishes[1][1] == "OFF"
 
 
-def test_threshold_binary_hysteresis_still_requires_crossing_threshold_to_turn_on(
+def test_threshold_binary_hold_band_irrelevant_until_on_threshold_crossed(
     fake_mqtt, mqtt_config
 ):
     handler = _handler(
-        fake_mqtt, mqtt_config, channel_kind="analog_threshold_binary", threshold=50, hysteresis=10
+        fake_mqtt,
+        mqtt_config,
+        channel_kind="analog_threshold_binary",
+        on_threshold=50,
+        off_threshold=40,
     )
     fake_mqtt.published.clear()
 
     remote = FakeRemoteXBee("0013A20012345678")
-    # Never above 50, so hysteresis band (40-50) is irrelevant while OFF.
+    # Never reaches on_threshold (50), so the hold band (40-50) can't hold it ON.
     handler.handle_io_sample(FakeIOSample(analog={"AD1": 45}), remote)
 
     state_publishes = [p for p in fake_mqtt.published if p[0].endswith("/state")]
@@ -94,16 +106,16 @@ def test_threshold_binary_below_direction_triggers_on_falling_value(fake_mqtt, m
         fake_mqtt,
         mqtt_config,
         channel_kind="analog_threshold_binary",
-        threshold=525,
-        hysteresis=10,
+        on_threshold=525,
+        off_threshold=535,
         direction="below",
     )
     fake_mqtt.published.clear()
 
     remote = FakeRemoteXBee("0013A20012345678")
-    handler.handle_io_sample(FakeIOSample(analog={"AD1": 380}), remote)  # below 525 -> ON
-    handler.handle_io_sample(FakeIOSample(analog={"AD1": 530}), remote)  # hysteresis band -> ON
-    handler.handle_io_sample(FakeIOSample(analog={"AD1": 670}), remote)  # above 535 -> OFF
+    handler.handle_io_sample(FakeIOSample(analog={"AD1": 380}), remote)  # <= 525 -> ON
+    handler.handle_io_sample(FakeIOSample(analog={"AD1": 530}), remote)  # hold band -> stays ON
+    handler.handle_io_sample(FakeIOSample(analog={"AD1": 670}), remote)  # >= 535 -> OFF
 
     state_publishes = [p for p in fake_mqtt.published if p[0].endswith("/state")]
     assert len(state_publishes) == 2
