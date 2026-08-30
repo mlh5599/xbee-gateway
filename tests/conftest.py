@@ -99,6 +99,24 @@ class FakeIOSample:
         return bool(self.digital_values)
 
 
+class FakeClock:
+    """Controllable monotonic-style clock for time-dependent handler logic."""
+
+    def __init__(self, now: float = 0.0):
+        self.now = now
+
+    def __call__(self) -> float:
+        return self.now
+
+    def advance(self, seconds: float) -> None:
+        self.now += seconds
+
+
+@pytest.fixture
+def fake_clock():
+    return FakeClock()
+
+
 @pytest.fixture
 def fake_mqtt():
     return FakeMqttPort()

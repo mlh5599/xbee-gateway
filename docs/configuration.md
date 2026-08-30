@@ -60,10 +60,25 @@ Copy from `config/devices.example.json`. Path via `--devices` CLI flag or
       the two setpoints the state is held, so the gap acts as an anti-flap band; a wider
       gap also keeps the state ON longer into the tail (e.g. a pipe cooling down after a
       shower). Both setpoints are on the same side of the resting level.
+    - `band_timeout_seconds` (optional) — failsafe against a latch that never clears.
+      Once the state is ON, if the raw value sits *in the hold band* (past `on_threshold`
+      but not yet back to `off_threshold`) for this many seconds without ever reaching
+      `off_threshold`, the state is forced back **OFF** and logged as a false trigger.
+      A real event slams the reading well past `on_threshold` and holds it there, so it
+      never lingers in the band; crosstalk, sensor drift, or a since-silent end device
+      only nudge the reading into the band, and this releases them. The timer starts at
+      the OFF→ON transition and is not reset by the reading going deeper; reaching
+      `off_threshold` always releases immediately regardless of the timer. Omit it (the
+      default) for pure two-setpoint hysteresis with no time limit. The failsafe is also
+      re-evaluated on a periodic internal tick, so it still fires when the end device has
+      stopped sending samples.
     - Example (shower-pipe NTC, resting ADC ~660): `"direction": "below"`,
-      `"on_threshold": 620`, `"off_threshold": 640` — ON once the pipe warms enough to
-      pull the reading to 620, OFF once it cools back to 640. If a channel is missing
-      `on_threshold` it never turns on; missing `off_threshold`, it never turns off.
+      `"on_threshold": 620`, `"off_threshold": 640`, `"band_timeout_seconds": 60` — ON
+      once the pipe warms enough to pull the reading to 620, OFF once it cools back to
+      640, or forced OFF if it just hovers between 620 and 640 for a minute (a nearby
+      pipe warming this one, not a shower). If a channel is missing `on_threshold` it
+      never turns on; missing `off_threshold`, it never turns off (unless
+      `band_timeout_seconds` is set).
   - `digital_binary` → HA `binary_sensor` from a true digital IO line.
 
 ## Environment variable overrides

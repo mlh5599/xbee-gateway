@@ -28,6 +28,7 @@ def _channel_from_config(channel_cfg) -> Channel:
         on_threshold=channel_cfg.on_threshold,
         off_threshold=channel_cfg.off_threshold,
         direction=channel_cfg.direction,
+        band_timeout_seconds=channel_cfg.band_timeout_seconds,
         above_threshold_payload=channel_cfg.above_threshold_payload,
         below_threshold_payload=channel_cfg.below_threshold_payload,
         payload_on=channel_cfg.payload_on,
@@ -96,6 +97,9 @@ class DeviceRegistry:
 
     def get(self, address: str) -> RemoteDevice | None:
         return self._devices.get(address)
+
+    def all_devices(self) -> list[RemoteDevice]:
+        return list(self._devices.values())
 
     def get_or_auto_register(self, address: str, io_sample) -> RemoteDevice | None:
         device = self._devices.get(address)

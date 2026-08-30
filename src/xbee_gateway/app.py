@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+import threading
 
 from xbee_gateway.config.loader import ConfigStore
 from xbee_gateway.gpio import build_gpio_controller
@@ -21,6 +22,20 @@ from xbee_gateway.xbee.radio_port import DigiXBeeRadioPort
 from xbee_gateway.xbee.sample_handler import IOSampleHandler
 
 logger = logging.getLogger(__name__)
+
+# How often to re-evaluate time-based threshold transitions (the analog_threshold_binary
+# hold-band timeout). Needs to be well under the smallest band_timeout_seconds so a
+# channel stuck in the band — including one whose end device has since gone silent —
+# is released promptly rather than only on the next incoming sample.
+TICK_INTERVAL_SECONDS = 15.0
+
+
+def _run_ticker(sample_handler, stop_event, interval: float = TICK_INTERVAL_SECONDS) -> None:
+    while not stop_event.wait(interval):
+        try:
+            sample_handler.tick()
+        except Exception:  # pragma: no cover - defensive, keep the loop alive
+            logger.exception("sample handler tick failed")
 
 
 def parse_args(argv=None) -> argparse.Namespace:
@@ -59,10 +74,20 @@ def main(argv=None) -> None:
     coordinator.set_io_sample_callback(sample_handler.handle_io_sample)
 
     stop_event = install_signal_handlers()
+
+    ticker = threading.Thread(
+        target=_run_ticker,
+        args=(sample_handler, stop_event),
+        name="sample-handler-tick",
+        daemon=True,
+    )
+    ticker.start()
+
     logger.info("xbee-gateway running, press Ctrl+C to stop")
     stop_event.wait()
 
     logger.info("Shutting down")
+    ticker.join(timeout=TICK_INTERVAL_SECONDS + 1.0)
     mqtt.publish_availability(online=False)
     coordinator.close()
     mqtt.disconnect()

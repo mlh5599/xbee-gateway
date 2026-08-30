@@ -15,6 +15,7 @@
           "on_threshold": 620,
           "off_threshold": 640,
           "direction": "below",
+          "band_timeout_seconds": 60,
           "above_threshold_payload": "ON",
           "below_threshold_payload": "OFF"
         },

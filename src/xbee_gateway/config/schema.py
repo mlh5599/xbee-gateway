@@ -80,6 +80,8 @@ class ChannelConfig:
     on_threshold: Optional[float] = None
     off_threshold: Optional[float] = None
     direction: str = "above"  # "above" | "below" — which side is "hotter"/triggered
+    # Failsafe release for a channel stuck in the hold band; see Channel.band_timeout_seconds.
+    band_timeout_seconds: Optional[float] = None
     above_threshold_payload: str = "ON"
     below_threshold_payload: str = "OFF"
     payload_on: str = "ON"
