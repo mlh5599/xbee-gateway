@@ -46,17 +46,24 @@ Copy from `config/devices.example.json`. Path via `--devices` CLI flag or
   - `analog` → HA `sensor` (`unit_of_measurement`, `device_class`, optional
     `value_template` for scaling raw ADC readings). Publishes on every sample.
   - `analog_threshold_binary` → HA `binary_sensor` derived from an ADC value crossing
-    `threshold`. Publishes only on a debounced state change.
-    - `direction` (default `"above"`) — which side of `threshold` counts as triggered.
-      `"above"`: raw value > threshold → ON (most sensors — moisture, current clamps).
-      `"below"`: raw value < threshold → ON. Use this for NTC thermistors, where
-      resistance (and so the raw ADC reading) *drops* as the monitored condition heats
-      up.
-    - `hysteresis` (default `0`) — once triggered ON, the value must cross back past
-      `threshold` by this amount to turn OFF again (past `threshold - hysteresis` for
-      `direction: "above"`, or `threshold + hysteresis` for `direction: "below"`). Use
-      this to stop a reading that hovers near `threshold` from flapping the entity
-      state. `0` reproduces the old hard-threshold behavior.
+    two independent setpoints. Publishes only on a debounced state change.
+    - `direction` (default `"above"`) — which side is the "triggered"/hotter side.
+      `"above"`: higher raw value → ON (most sensors — moisture, current clamps).
+      `"below"`: lower raw value → ON. Use this for NTC thermistors, where resistance
+      (and so the raw ADC reading) *drops* as the monitored condition heats up.
+    - `on_threshold` — the state goes **ON** when the raw value passes this in the
+      triggered direction (`>= on_threshold` for `"above"`, `<= on_threshold` for
+      `"below"`). Set it close to the resting reading so a slow ramp trips the state
+      early, with a little margin so quiet-period noise doesn't false-trigger.
+    - `off_threshold` — the state goes back **OFF** when the raw value comes back past
+      this (`<= off_threshold` for `"above"`, `>= off_threshold` for `"below"`). Between
+      the two setpoints the state is held, so the gap acts as an anti-flap band; a wider
+      gap also keeps the state ON longer into the tail (e.g. a pipe cooling down after a
+      shower). Both setpoints are on the same side of the resting level.
+    - Example (shower-pipe NTC, resting ADC ~660): `"direction": "below"`,
+      `"on_threshold": 620`, `"off_threshold": 640` — ON once the pipe warms enough to
+      pull the reading to 620, OFF once it cools back to 640. If a channel is missing
+      `on_threshold` it never turns on; missing `off_threshold`, it never turns off.
   - `digital_binary` → HA `binary_sensor` from a true digital IO line.
 
 ## Environment variable overrides

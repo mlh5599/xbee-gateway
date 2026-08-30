@@ -41,8 +41,8 @@ def test_channels_sharing_an_io_line_both_get_discovery_published(fake_mqtt, mqt
                         io_line="DIO1_AD1",
                         name="Master Bathroom Shower",
                         kind="analog_threshold_binary",
-                        threshold=600,
-                        hysteresis=40,
+                        on_threshold=600,
+                        off_threshold=560,
                     ),
                     ChannelConfig(
                         io_line="DIO1_AD1",

@@ -21,9 +21,9 @@ class Channel:
     unit_of_measurement: str | None = None
     device_class: str | None = None
     value_template: str | None = None
-    threshold: float | None = None
-    hysteresis: float = 0.0
-    direction: str = "above"  # "above" | "below" — which side of threshold means "triggered"
+    on_threshold: float | None = None
+    off_threshold: float | None = None
+    direction: str = "above"  # "above" | "below" — which side is "hotter"/triggered
     above_threshold_payload: str = "ON"
     below_threshold_payload: str = "OFF"
     payload_on: str = "ON"

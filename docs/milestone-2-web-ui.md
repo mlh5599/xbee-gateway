@@ -31,7 +31,7 @@ layer for v1 — the web UI and gateway process only communicate via the JSON fi
 ## Scope
 
 - CRUD for `devices.json`: add/edit/delete devices and channels, `kind` selector driving
-  conditional fields (threshold, unit, device_class, templates).
+  conditional fields (on/off thresholds, unit, device_class, templates).
 - Editor for `coordinator.at_settings` with hex-format validation and a warning that
   changes require re-applying settings to the radio.
 - A way to "claim" an auto-registered device (see `auto_register_unknown_devices` in
