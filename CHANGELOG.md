@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Added `band_timeout_seconds` (optional) to `analog_threshold_binary` channels: once
+  ON, if the reading sits in the hold band that long without ever reaching
+  `off_threshold`, it is forced OFF and logged as a false trigger (a nearby hot pipe
+  warming the sensor, or an end device going silent mid-band). Re-evaluated on a
+  periodic internal tick so it still fires when samples stop. After such a release the
+  channel is **suppressed**: a lone sample back past `on_threshold` is ignored, so a
+  reading wobbling across the setpoint (crosstalk + ADC noise) no longer flaps the
+  state ON/OFF on a ~`band_timeout_seconds` cycle. Re-arming takes two consecutive
+  on-side samples (a real event holds the reading there); a sample back past
+  `off_threshold` clears the suppression with the state left OFF.
 - **Breaking:** `analog_threshold_binary` channels now take two independent setpoints,
   `on_threshold` and `off_threshold`, instead of `threshold` + `hysteresis`. The single
   threshold plus one-sided deadband tripped late and, in practice, missed the many

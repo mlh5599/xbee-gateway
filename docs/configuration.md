@@ -72,6 +72,13 @@ Copy from `config/devices.example.json`. Path via `--devices` CLI flag or
       default) for pure two-setpoint hysteresis with no time limit. The failsafe is also
       re-evaluated on a periodic internal tick, so it still fires when the end device has
       stopped sending samples.
+      After a timeout release the channel is **suppressed**: the reading is still past
+      `on_threshold`, and if it wobbles across the setpoint (crosstalk plus ADC noise)
+      each re-cross would re-trip ON, time out again, and flap the state on a
+      ~`band_timeout_seconds` cycle. While suppressed a lone sample back past
+      `on_threshold` is ignored; it takes **two consecutive** on-side samples to re-arm
+      (a real event holds the reading there), or one sample back past `off_threshold`
+      to clear the suppression with the state left OFF.
     - Example (shower-pipe NTC, resting ADC ~660): `"direction": "below"`,
       `"on_threshold": 620`, `"off_threshold": 640`, `"band_timeout_seconds": 60` — ON
       once the pipe warms enough to pull the reading to 620, OFF once it cools back to

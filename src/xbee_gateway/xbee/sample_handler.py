@@ -112,6 +112,14 @@ class IOSampleHandler:
         so it never lingers in the hold band. Anything that trips `on_threshold` but
         then just sits in the band (crosstalk warming the pipe, sensor drift, a
         now-silent device) is released once the timeout elapses.
+
+        After a `band_timeout_seconds` release the channel is left `suppressed`: the
+        reading is still on the triggered side of `on_threshold`, and if it wobbles
+        across the setpoint (crosstalk plus ADC noise) each re-cross would otherwise
+        re-trip ON, time out again, and flap the state on a ~`band_timeout` cycle.
+        While suppressed a lone on-side sample is ignored; it takes two consecutive
+        on-side samples to re-arm (a real event holds the reading there), or one
+        sample back past `off_threshold` to clear the suppression with the state OFF.
         """
         on_at, off_at = channel.on_threshold, channel.off_threshold
 
@@ -125,9 +133,24 @@ class IOSampleHandler:
             in_band = on_at is not None and raw_value <= on_at and not crossed_off
 
         if not channel.triggered:
-            if crossed_on:
+            if crossed_off:
+                # Recovered past off_threshold — any post-timeout suppression is done.
+                channel.suppressed = False
+                channel.recross_seen = False
+            elif crossed_on:
+                if channel.suppressed and not channel.recross_seen:
+                    # First on-side sample since a band_timeout release. Treat it as
+                    # more of the same crosstalk/noise; wait for a second one in a row.
+                    channel.recross_seen = True
+                    return
                 channel.triggered = True
                 channel.triggered_at = self._clock()
+                channel.suppressed = False
+                channel.recross_seen = False
+            elif channel.suppressed:
+                # Drifted back into the band without recovering; the on-side streak is
+                # broken, so re-arming needs two fresh consecutive on-side samples.
+                channel.recross_seen = False
             return
 
         if crossed_off:
@@ -143,10 +166,13 @@ class IOSampleHandler:
         ):
             logger.info(
                 "Channel %r stuck in hold band for >= %ss without reaching off_threshold "
-                "(last raw=%s); releasing as a false trigger",
+                "(last raw=%s); releasing as a false trigger and suppressing re-trigger "
+                "until it recovers or trips twice in a row",
                 channel.name,
                 channel.band_timeout_seconds,
                 raw_value,
             )
             channel.triggered = False
             channel.triggered_at = None
+            channel.suppressed = True
+            channel.recross_seen = False

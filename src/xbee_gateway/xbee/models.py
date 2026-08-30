@@ -28,7 +28,8 @@ class Channel:
     # once triggered, if the reading sits in the hold band (between on_threshold and
     # off_threshold) for this many seconds without either reaching off_threshold or
     # going deeper than on_threshold, treat it as a false trigger and release. None
-    # disables the failsafe (pure two-setpoint hysteresis).
+    # disables the failsafe (pure two-setpoint hysteresis). After such a release the
+    # channel is left "suppressed" (see below) so it can't immediately flap back ON.
     band_timeout_seconds: float | None = None
     above_threshold_payload: str = "ON"
     below_threshold_payload: str = "OFF"
@@ -42,6 +43,16 @@ class Channel:
     triggered: bool | None = None
     # Monotonic timestamp of the most recent OFF->ON transition, for band_timeout_seconds.
     triggered_at: float | None = None
+    # Set when band_timeout_seconds releases the channel as a false trigger. While
+    # suppressed, a lone sample back past on_threshold is ignored instead of
+    # re-tripping (crosstalk noise straddling the setpoint would otherwise flap the
+    # state ON/OFF on a ~band_timeout cycle). Cleared by a sample back past
+    # off_threshold (genuinely recovered) or by two consecutive on-side samples (a
+    # real event slams the reading past on_threshold and holds it there).
+    suppressed: bool = False
+    # While suppressed: whether the previous sample was already on-side, so the next
+    # on-side sample in a row can re-arm. Any non-on-side sample resets it.
+    recross_seen: bool = False
 
     def slug(self) -> str:
         return _SLUG_NON_ALNUM.sub("-", self.name.lower()).strip("-")

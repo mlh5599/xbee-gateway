@@ -296,6 +296,44 @@ def test_channel_can_re_arm_after_a_band_timeout_release(fake_mqtt, mqtt_config,
     handler.handle_io_sample(FakeIOSample(analog={"AD1": 600}), remote)  # hold band
     fake_clock.advance(70)
     handler.handle_io_sample(FakeIOSample(analog={"AD1": 600}), remote)  # timeout -> OFF
-    handler.handle_io_sample(FakeIOSample(analog={"AD1": 400}), remote)  # fresh trip -> ON again
+    handler.handle_io_sample(FakeIOSample(analog={"AD1": 400}), remote)  # on-side #1: ignored
+    handler.handle_io_sample(FakeIOSample(analog={"AD1": 380}), remote)  # 2nd in a row -> ON again
+
+    assert _state_payloads(fake_mqtt) == ["ON", "OFF", "ON"]
+
+
+def test_suppressed_channel_ignores_a_lone_on_side_sample_after_band_timeout(
+    fake_mqtt, mqtt_config, fake_clock
+):
+    handler = _below_timeout_handler(fake_mqtt, mqtt_config, fake_clock)
+    fake_mqtt.published.clear()
+    remote = FakeRemoteXBee("0013A20012345678")
+
+    handler.handle_io_sample(FakeIOSample(analog={"AD1": 545}), remote)  # ON
+    handler.handle_io_sample(FakeIOSample(analog={"AD1": 600}), remote)  # hold band
+    fake_clock.advance(70)
+    handler.handle_io_sample(FakeIOSample(analog={"AD1": 600}), remote)  # timeout -> OFF
+    # crosstalk + ADC noise straddling on_threshold: on-side / in-band / on-side / in-band
+    handler.handle_io_sample(FakeIOSample(analog={"AD1": 540}), remote)  # on-side (streak 1)
+    handler.handle_io_sample(FakeIOSample(analog={"AD1": 610}), remote)  # in band -> streak reset
+    handler.handle_io_sample(FakeIOSample(analog={"AD1": 545}), remote)  # on-side (streak 1)
+    handler.handle_io_sample(FakeIOSample(analog={"AD1": 620}), remote)  # in band
+
+    assert _state_payloads(fake_mqtt) == ["ON", "OFF"]  # no flap
+
+
+def test_suppression_clears_on_recovery_past_off_threshold(
+    fake_mqtt, mqtt_config, fake_clock
+):
+    handler = _below_timeout_handler(fake_mqtt, mqtt_config, fake_clock)
+    fake_mqtt.published.clear()
+    remote = FakeRemoteXBee("0013A20012345678")
+
+    handler.handle_io_sample(FakeIOSample(analog={"AD1": 545}), remote)  # ON
+    handler.handle_io_sample(FakeIOSample(analog={"AD1": 600}), remote)  # hold band
+    fake_clock.advance(70)
+    handler.handle_io_sample(FakeIOSample(analog={"AD1": 600}), remote)  # timeout -> OFF
+    handler.handle_io_sample(FakeIOSample(analog={"AD1": 650}), remote)  # past off_threshold
+    handler.handle_io_sample(FakeIOSample(analog={"AD1": 500}), remote)  # lone trip -> ON
 
     assert _state_payloads(fake_mqtt) == ["ON", "OFF", "ON"]
